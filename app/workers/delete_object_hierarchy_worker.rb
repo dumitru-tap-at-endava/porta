@@ -21,7 +21,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
   end
 
   def perform(_object, _caller_worker_hierarchy = [], _background_destroy_method = 'destroy')
-    DeletionLock.call_with_lock(lock_key: id, debug_info: caller_worker_hierarchy) { build_batch }
+    build_batch
   end
 
   def on_success(_, options)

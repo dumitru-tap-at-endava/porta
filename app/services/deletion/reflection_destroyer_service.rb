@@ -46,6 +46,8 @@ module Deletion
         DeleteAccountHierarchyWorker
       when PaymentGatewaySetting.name
         DeletePaymentSettingHierarchyWorker
+      when Cinstance.name, ServiceContract.name, AccountContract.name
+        DeleteContractHierarchyWorker
       else
         DeleteObjectHierarchyWorker
       end
