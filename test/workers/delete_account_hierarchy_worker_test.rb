@@ -101,6 +101,7 @@ class DeleteAccountHierarchyWorkerTest < ActiveSupport::TestCase
       @tenant_hierarchy_worker ||= begin
         worker = DeleteAccountHierarchyWorker.new
         worker.instance_variable_set(:@caller_worker_hierarchy, ["Hierarchy-Account-#{provider.id}"])
+        worker.instance_variable_set(:@id, "Hierarchy-Account-#{provider.id}")
         worker.instance_variable_set(:@object, provider)
         worker
       end

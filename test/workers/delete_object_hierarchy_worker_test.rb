@@ -62,6 +62,7 @@ class DeleteObjectHierarchyWorkerTest < ActiveSupport::TestCase
       worker.instance_variable_set(:@object, object)
       caller_worker_hierarchy = %w[HTestClass123 HTestClass1123]
       worker.instance_variable_set(:@caller_worker_hierarchy, caller_worker_hierarchy)
+      worker.instance_variable_set(:@id, 'HTestClass1123')
       worker.expects(:on_complete).with(anything, {'object_global_id' => object.to_global_id, 'caller_worker_hierarchy' => caller_worker_hierarchy})
       worker.perform(object: object)
     end
