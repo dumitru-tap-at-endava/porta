@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 class DeleteObjectHierarchyWorker < ApplicationJob
-
   # TODO: Rails 5 --> discard_on ActiveJob::DeserializationError
   # No need of ActiveRecord::RecordNotFound because that can only happen in the callbacks and those callbacks don't use this rescue_from but its own rescue
-  rescue_from(ActiveJob::DeserializationError) do |exception|
+  rescue_from(ActiveJob::DeserializationError, DeletionLock::LockDeletionError) do |exception|
     Rails.logger.info "DeleteObjectHierarchyWorker#perform raised #{exception.class} with message #{exception.message}"
   end
 
@@ -12,7 +11,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
 
   before_perform do |job|
     @object, workers_hierarchy, @background_destroy_method = job.arguments
-    id = "Hierarchy-#{object.class.name}-#{object.id}"
+    @id = "Hierarchy-#{object.class.name}-#{object.id}"
     @caller_worker_hierarchy = Array(workers_hierarchy) + [id]
     info "Starting #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
   end
@@ -22,7 +21,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
   end
 
   def perform(_object, _caller_worker_hierarchy = [], _background_destroy_method = 'destroy')
-    build_batch
+    DeletionLock.call_with_lock(lock_key: id, debug_info: caller_worker_hierarchy) { build_batch }
   end
 
   def on_success(_, options)
@@ -48,7 +47,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
 
   delegate :info, to: 'Rails.logger'
 
-  attr_reader :object, :caller_worker_hierarchy
+  attr_reader :object, :caller_worker_hierarchy, :id
 
   def build_batch
     batch = Sidekiq::Batch.new
