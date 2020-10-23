@@ -10,7 +10,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
   queue_as :deletion
 
   before_perform do |job|
-    @object, workers_hierarchy, @background_destroy_method = job.arguments
+    @object, workers_hierarchy, @options = job.arguments
     @id = "Hierarchy-#{object.class.name}-#{object.id}"
     @caller_worker_hierarchy = Array(workers_hierarchy) + [id]
     info "Starting #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
@@ -20,8 +20,12 @@ class DeleteObjectHierarchyWorker < ApplicationJob
     info "Finished #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
   end
 
-  def perform(_object, _caller_worker_hierarchy = [], _background_destroy_method = 'destroy')
-    build_batch
+  def perform(_object, _caller_worker_hierarchy = [], _options = {})
+    if lock?
+      DeletionLock.call_with_lock(lock_key: id, debug_info: caller_worker_hierarchy) { build_batch }
+    else
+      build_batch
+    end
   end
 
   def on_success(_, options)
@@ -36,7 +40,6 @@ class DeleteObjectHierarchyWorker < ApplicationJob
     workers_hierarchy = options['caller_worker_hierarchy']
     info "Starting DeleteObjectHierarchyWorker##{method_name} with the hierarchy of workers: #{workers_hierarchy}"
     object = GlobalID::Locator.locate(options['object_global_id'])
-    background_destroy_method = @background_destroy_method.presence || 'destroy'
     DeletePlainObjectWorker.perform_later(object, workers_hierarchy, background_destroy_method)
     info "Finished DeleteObjectHierarchyWorker##{method_name} with the hierarchy of workers: #{workers_hierarchy}"
   rescue ActiveRecord::RecordNotFound => exception
@@ -45,9 +48,17 @@ class DeleteObjectHierarchyWorker < ApplicationJob
 
   protected
 
+  def background_destroy_method
+    options.fetch(:background_destroy_method) { ::BackgroundDeletion::Reflection::DEFAULT_DESTROY_METHOD }
+  end
+
+  def lock?
+    options.fetch(:lock) { ::BackgroundDeletion::Reflection::DEFAULT_LOCK_OPTION }
+  end
+
   delegate :info, to: 'Rails.logger'
 
-  attr_reader :object, :caller_worker_hierarchy, :id
+  attr_reader :object, :caller_worker_hierarchy, :id, :options
 
   def build_batch
     batch = Sidekiq::Batch.new
