@@ -47,7 +47,7 @@ class DeletePlainObjectWorker < ApplicationJob
   attr_reader :caller_worker_hierarchy, :id, :object
 
   def destroy_method(bang_if_possible: false)
-    object_destroy_method = @destroy_method.presence || 'destroy'
+    object_destroy_method = @destroy_method.presence || ::BackgroundDeletion::Reflection::DEFAULT_DESTROY_METHOD
 
     (bang_if_possible && object_destroy_method == 'destroy') ? 'destroy!' : object_destroy_method
   end
