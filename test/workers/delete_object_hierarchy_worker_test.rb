@@ -64,7 +64,7 @@ class DeleteObjectHierarchyWorkerTest < ActiveSupport::TestCase
       worker.instance_variable_set(:@caller_worker_hierarchy, caller_worker_hierarchy)
       worker.instance_variable_set(:@id, 'HTestClass1123')
       worker.instance_variable_set(:@options, {})
-      worker.expects(:on_complete).with(anything, {'object_global_id' => object.to_global_id, 'caller_worker_hierarchy' => caller_worker_hierarchy})
+      worker.expects(:on_complete).with(anything, {'object_global_id' => object.to_global_id, 'caller_worker_hierarchy' => caller_worker_hierarchy, 'background_destroy_method' => nil})
       worker.perform(object: object)
     end
   end
@@ -213,13 +213,13 @@ class DeleteObjectHierarchyWorkerTest < ActiveSupport::TestCase
 
     def test_defined_background_destroy_associations
       double_object = DoubleWithBackgroundDestroyAssociation.new
-      DeleteObjectHierarchyWorker.expects(:perform_later).with(double_object.service, anything, {background_destroy_method: 'destroy'}).once
+      DeleteObjectHierarchyWorker.expects(:perform_later).with(double_object.service, anything, {background_destroy_method: 'destroy', lock: false}).once
       DeleteObjectHierarchyWorker.perform_now(double_object)
     end
 
     def test_defined_background_delete_associations
       double_object = DoubleWithBackgroundDeleteAssociation.new
-      DeleteObjectHierarchyWorker.expects(:perform_later).with(double_object.service, anything, {background_destroy_method: 'delete'}).once
+      DeleteObjectHierarchyWorker.expects(:perform_later).with(double_object.service, anything, {background_destroy_method: 'delete', lock: false}).once
       DeleteObjectHierarchyWorker.perform_now(double_object)
     end
   end
