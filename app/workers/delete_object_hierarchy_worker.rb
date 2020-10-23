@@ -17,10 +17,11 @@ class DeleteObjectHierarchyWorker < ApplicationJob
                    })
 
   before_perform do |job|
-    @object, workers_hierarchy, @options = job.arguments
+    @object, workers_hierarchy, options = job.arguments
     @id = "Hierarchy-#{object.class.name}-#{object.id}"
     @caller_worker_hierarchy = Array(workers_hierarchy) + [id]
-    info "Starting #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
+    @options = options || {}
+    info "Starting #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}. With options: #{options}"
   end
 
   after_perform do |job|
