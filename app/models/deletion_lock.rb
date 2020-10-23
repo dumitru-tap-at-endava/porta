@@ -4,21 +4,18 @@ class DeletionLock < ApplicationRecord
   class LockDeletionError < StandardError; end
 
   def self.call_with_lock(lock_key:, debug_info: nil, &block)
-    begin
-      lock(lock_key: lock_key, debug_info: debug_info)
-      yield
-    ensure
-      unlock(lock_key: lock_key, debug_info: debug_info)
-    end
+    lock(lock_key: lock_key, debug_info: debug_info)
+    yield
+  ensure
+    unlock(lock_key: lock_key, debug_info: debug_info)
   end
 
   def self.lock(lock_key:, debug_info: nil)
     lock = new(lock_key: lock_key)
-    if lock.save
-      Rails.logger.info "DeletionLock created for #{lock_key}.  #{debug_info}"
-    else
-      raise LockDeletionError, "Could not lock #{lock_key}.  #{debug_info}"
-    end
+
+    raise LockDeletionError, "Could not lock #{lock_key}.  #{debug_info}" unless lock.save
+
+    Rails.logger.info "DeletionLock created for #{lock_key}.  #{debug_info}"
   end
 
   def self.unlock(lock_key:, debug_info: nil)
