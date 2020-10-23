@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class DeleteObjectHierarchyWorker < ApplicationJob
+  include Sidekiq::Throttled::Worker
+
   # TODO: Rails 5 --> discard_on ActiveJob::DeserializationError
   # No need of ActiveRecord::RecordNotFound because that can only happen in the callbacks and those callbacks don't use this rescue_from but its own rescue
   rescue_from(ActiveJob::DeserializationError, DeletionLock::LockDeletionError) do |exception|
@@ -8,6 +10,11 @@ class DeleteObjectHierarchyWorker < ApplicationJob
   end
 
   queue_as :deletion
+
+  sidekiq_throttle({
+                     concurrency: { limit: 15 },
+                     threshold:   { limit: 40_000, period: 1.minute }
+                   })
 
   before_perform do |job|
     @object, workers_hierarchy, @options = job.arguments
@@ -101,6 +108,7 @@ class DeleteObjectHierarchyWorker < ApplicationJob
 
   def called_from_provider_hierarchy?
     return unless (tenant_id = object.tenant_id)
+
     caller_worker_hierarchy.include?("Hierarchy-Account-#{tenant_id}")
   end
 
