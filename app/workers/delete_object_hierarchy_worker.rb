@@ -111,6 +111,6 @@ class DeleteObjectHierarchyWorker < ApplicationJob
   end
 
   def callback_options
-    { 'object_global_id' => object.to_global_id, 'caller_worker_hierarchy' => caller_worker_hierarchy, 'background_destroy_method' => options[:background_destroy_method] }
+    { 'object_global_id' => object.to_global_id, 'caller_worker_hierarchy' => caller_worker_hierarchy, 'background_destroy_method' => options[:background_destroy_method] || options['background_destroy_method'] }
   end
 end
