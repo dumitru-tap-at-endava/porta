@@ -16,7 +16,7 @@ class DeletePlainObjectWorker < ApplicationJob
     end
   end
 
-  rescue_from(ActiveRecord::StaleObjectError) do |exception|
+  rescue_from(ActiveRecord::StaleObjectError, ActiveRecord::RecordNotSaved) do |exception|
     Rails.logger.info "DeletePlainObjectWorker#perform raised #{exception.class} with message #{exception.message} for the hierarchy #{caller_worker_hierarchy}"
     retry_job if object.class.exists?(object.id)
   end
