@@ -26,9 +26,10 @@ class DeletePlainObjectWorker < ApplicationJob
   sidekiq_throttle({ concurrency: { limit: 10 } })
 
   before_perform do |job|
-    @object, workers_hierarchy, @destroy_method = job.arguments
+    @object, workers_hierarchy, options = job.arguments
     @id = "Plain-#{object.class.name}-#{object.id}"
     @caller_worker_hierarchy = Array(workers_hierarchy) + [@id]
+    @options = options || {}
     info "Starting #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
   end
 
@@ -36,18 +37,30 @@ class DeletePlainObjectWorker < ApplicationJob
     info "Finished #{job.class}#perform with the hierarchy of workers: #{caller_worker_hierarchy}"
   end
 
-  def perform(_object, _caller_worker_hierarchy = [], _destroy_method = 'destroy')
-    should_destroy_by_association? ? destroy_by_association : object.public_send(destroy_method(bang_if_possible: true))
+  def perform(_object, _caller_worker_hierarchy = [], _options = {})
+    if lock?
+      DeletionLock.call_with_lock(lock_key: id, debug_info: caller_worker_hierarchy) { destroy }
+    else
+      destroy
+    end
   end
 
   private
 
+  def lock?
+    options.fetch(:lock) { ::BackgroundDeletion::Reflection::DEFAULT_LOCK_OPTION }
+  end
+
+  def destroy
+    should_destroy_by_association? ? destroy_by_association : object.public_send(destroy_method(bang_if_possible: true))
+  end
+
   delegate :info, to: 'Rails.logger'
 
-  attr_reader :caller_worker_hierarchy, :id, :object
+  attr_reader :caller_worker_hierarchy, :id, :object, :options
 
   def destroy_method(bang_if_possible: false)
-    object_destroy_method = @destroy_method.presence || ::BackgroundDeletion::Reflection::DEFAULT_DESTROY_METHOD
+    object_destroy_method = options[:background_destroy_method].presence || ::BackgroundDeletion::Reflection::DEFAULT_DESTROY_METHOD
 
     (bang_if_possible && object_destroy_method == 'destroy') ? 'destroy!' : object_destroy_method
   end

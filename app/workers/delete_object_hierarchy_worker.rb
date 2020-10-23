@@ -48,8 +48,8 @@ class DeleteObjectHierarchyWorker < ApplicationJob
     workers_hierarchy = options['caller_worker_hierarchy']
     info "Starting DeleteObjectHierarchyWorker##{method_name} with the hierarchy of workers: #{workers_hierarchy}"
     object = GlobalID::Locator.locate(options['object_global_id'])
-    background_destroy_method = options['background_destroy_method'].presence || ::BackgroundDeletion::Reflection::DEFAULT_DESTROY_METHOD
-    DeletePlainObjectWorker.perform_later(object, workers_hierarchy, background_destroy_method)
+    deletion_options = {background_destroy_method: options['background_destroy_method'], lock: options['lock']}
+    DeletePlainObjectWorker.perform_later(object, workers_hierarchy, deletion_options)
     info "Finished DeleteObjectHierarchyWorker##{method_name} with the hierarchy of workers: #{workers_hierarchy}"
   rescue ActiveRecord::RecordNotFound => exception
     info "DeleteObjectHierarchyWorker##{method_name} raised #{exception.class} with message #{exception.message}"
