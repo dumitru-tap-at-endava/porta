@@ -40,7 +40,7 @@ module Deletion
       return unless associated_object.try(:id)
       options = { background_destroy_method: reflection.background_destroy_method, lock: reflection.lock? }
       pp "Deletion::ReflectionDestroyerService#delete_associated_object_later - #{options}"
-      association_delete_worker.perform_later(associated_object, caller_worker_hierarchy, options: options)
+      association_delete_worker.perform_later(associated_object, caller_worker_hierarchy, options)
     end
 
     def association_delete_worker
