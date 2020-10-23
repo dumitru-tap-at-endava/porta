@@ -31,7 +31,6 @@ module BackgroundDeletion
     end
 
     def background_destroy_method
-      pp "Concern BackgroundDeletion#background_destroy_method: #{options[:action].to_s.inspect}"
       options[:action].to_s.presence || DEFAULT_DESTROY_METHOD
     end
 
