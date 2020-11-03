@@ -1,4 +1,3 @@
-- # TODO: When APIAP is default, adjust the old settings cukes to usage rules
 - content_for :sublayout_title, 'Usage Rules', flush: true
 
 - if (can? :manage, :service_plans) && !current_account.settings.service_plans_ui_visible?
@@ -19,4 +18,4 @@
 = semantic_form_for @service, :url => admin_service_path(@service) do |form|
   = render :partial => 'api/services/forms/usage_rules', :locals => { :form => form }
   = form.buttons do
-    = form.commit_button
+    = form.commit_button 'Update Product'

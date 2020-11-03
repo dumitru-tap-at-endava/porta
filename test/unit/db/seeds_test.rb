@@ -144,16 +144,8 @@ class SeedsTest < ActiveSupport::TestCase
     end
   end
 
-  test 'creates the backend api for the first tenant if has RU api_as_product enabled' do
+  test 'creates the backend api for the first tenant' do
     Account.any_instance.stubs(provider_can_use?: true)
-
-    Rails.application.load_seed
-
-    assert_expected_backend_api
-  end
-
-  test 'creates the backend api for the first tenant if has RU api_as_product disabled' do
-    Account.any_instance.stubs(provider_can_use?: false)
 
     Rails.application.load_seed
 

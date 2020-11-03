@@ -111,7 +111,7 @@ module Apicast
       end
     end
 
-    def initialize(proxy, environment: :staging, build_from_config: -> { apiap? }, use_api_test_path: -> { !apiap? })
+    def initialize(proxy, environment: :staging, build_from_config: -> { true }, use_api_test_path: -> { false })
       @proxy = proxy
       @environment = environment
       call_or_self = ->(param) { param.respond_to?(:call) ? param.call : param }
@@ -136,10 +136,6 @@ module Apicast
       else
         raise
       end
-    end
-
-    def apiap?
-      proxy.provider_can_use?(:api_as_product)
     end
 
     def proxy_from_config

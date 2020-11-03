@@ -4,7 +4,8 @@ class Api::IntegrationsController < Api::BaseController
   before_action :find_service
   before_action :find_proxy
   before_action :authorize
-  before_action :hide_for_apiap, only: :edit
+  # TODO: remove route instead of hide
+  before_action :hide, only: :edit
   before_action :find_registry_policies, only: %i[edit update]
 
   activate_menu :serviceadmin, :integration, :configuration
@@ -32,15 +33,7 @@ class Api::IntegrationsController < Api::BaseController
       flash[:notice] = flash_message(:update_success, environment: environment)
       update_mapping_rules_position
 
-      return redirect_to admin_service_integration_path(@service) if apiap?
-
-      if @proxy.send_api_test_request!
-        api_backend = @proxy.api_backend
-        done_step(:api_sandbox_traffic) if api_backend.present? && ApiClassificationService.test(api_backend).real_api?
-        return redirect_to edit_path
-      end
-
-      render :edit
+      redirect_to admin_service_integration_path(@service)
     else
       attrs = proxy_rules_attributes
       splitted = attrs.keys.group_by { |key| attrs[key]['_destroy'] == '1' }
@@ -51,7 +44,7 @@ class Api::IntegrationsController < Api::BaseController
       flash.now[:error] = flash_message(:update_error)
       @api_test_form_error = true
 
-      render_edit_or_show
+      render :show
     end
   end
 
@@ -146,7 +139,7 @@ class Api::IntegrationsController < Api::BaseController
 
     @last_message_bus_id = nil # don't want MessageBus showing flash message
 
-    render_edit_or_show status: :conflict
+    render :show, status: :conflict
   end
 
   def flash_message(key, opts = {})
@@ -157,9 +150,9 @@ class Api::IntegrationsController < Api::BaseController
     if @proxy.update_attributes(proxy_params)
       update_mapping_rules_position
       flash[:notice] = flash_message(:proxy_pro_update_sucess)
-      redirect_to_edit_or_show
+      redirect_to :show
     else
-      render_edit_or_show
+      render :show
     end
   end
 
@@ -177,7 +170,7 @@ class Api::IntegrationsController < Api::BaseController
       @api_test_form_error = true
     end
 
-    render_edit_or_show
+    render :show
   end
 
   def edit_path
@@ -204,8 +197,8 @@ class Api::IntegrationsController < Api::BaseController
     proxy.oidc? && ZyncWorker.config.message_bus
   end
 
-  def hide_for_apiap
-    raise ActiveRecord::RecordNotFound if apiap?
+  def hide
+    raise ActiveRecord::RecordNotFound
   end
 
   def authorize
@@ -227,14 +220,31 @@ class Api::IntegrationsController < Api::BaseController
   def proxy_params
     basic_fields = [
       :lock_version,
-
-      :auth_app_id, :auth_app_key, :api_backend, :hostname_rewrite, :oauth_login_url,
-      :secret_token, :credentials_location, :auth_user_key, :error_status_auth_failed,
-      :error_headers_auth_failed, :error_auth_failed, :error_status_auth_missing,
-      :error_headers_auth_missing, :error_auth_missing, :error_status_no_match,
-      :error_headers_no_match, :error_no_match, :error_status_limits_exceeded, :error_headers_limits_exceeded, :error_limits_exceeded,
-      :api_test_path, :policies_config, proxy_rules_attributes: %i[_destroy id http_method pattern delta metric_id
-                                                                   redirect_url position last], oidc_configuration_attributes: OIDCConfiguration::Config::ATTRIBUTES + [:id]
+      :auth_app_id,
+      :auth_app_key,
+      :api_backend,
+      :hostname_rewrite,
+      :oauth_login_url,
+      :secret_token,
+      :credentials_location,
+      :auth_user_key,
+      :error_status_auth_failed,
+      :error_headers_auth_failed,
+      :error_auth_failed,
+      :error_status_auth_missing,
+      :error_headers_auth_missing,
+      :error_auth_missing,
+      :error_status_no_match,
+      :error_headers_no_match,
+      :error_no_match,
+      :error_status_limits_exceeded,
+      :error_headers_limits_exceeded,
+      :error_limits_exceeded,
+      :api_test_path,
+      :policies_config,
+      backend_api_configs_attributes: %i[_destroy id path],
+      proxy_rules_attributes: %i[_destroy id http_method pattern delta metric_id redirect_url position last],
+      oidc_configuration_attributes: OIDCConfiguration::Config::ATTRIBUTES + [:id]
     ]
 
     if Rails.application.config.three_scale.apicast_custom_url || @proxy.saas_configuration_driven_apicast_self_managed?
@@ -251,8 +261,6 @@ class Api::IntegrationsController < Api::BaseController
       basic_fields << :jwt_claim_with_client_id_type
     end
 
-    basic_fields << { backend_api_configs_attributes: %i[_destroy id path] } if provider_can_use?(:api_as_product)
-
     params.require(:proxy).permit(*basic_fields)
   end
 
@@ -262,13 +270,5 @@ class Api::IntegrationsController < Api::BaseController
 
   def toggle_land_path
     @proxy.apicast_configuration_driven ? admin_service_integration_path(@service) : edit_admin_service_integration_path(@service)
-  end
-
-  def render_edit_or_show(opts = {})
-    render (apiap? ? :show : :edit), opts
-  end
-
-  def redirect_to_edit_or_show
-    redirect_to (apiap? ? :show : edit_path)
   end
 end

@@ -299,16 +299,6 @@ module Logic
         end
       end
 
-      class ApiAsProduct < Base
-        def enabled?
-          super && !master?
-        end
-
-        def missing_config
-          false
-        end
-      end
-
       class StripeElements < Base
         def missing_config
           false

@@ -10,11 +10,10 @@ import {PROJECTS_PATH} from 'NewService'
 
 type Props = {
   formActionPath: string,
-  apiap: boolean,
   setLoadingProjects: boolean => void
 }
 
-const ServiceDiscoveryForm = ({formActionPath, apiap, setLoadingProjects}: Props) => {
+const ServiceDiscoveryForm = ({formActionPath, setLoadingProjects}: Props) => {
   // Don't use named imports so that useState can be mocked in specs
   const [projects, setProjects] = React.useState([])
   const [fetchErrorMessage, setFetchErrorMessage] = React.useState('')
@@ -42,7 +41,7 @@ const ServiceDiscoveryForm = ({formActionPath, apiap, setLoadingProjects}: Props
     id: 'service_source',
     formActionPath,
     hasHiddenServiceDiscoveryInput: true,
-    submitText: apiap ? 'Create Product' : 'Create Service'
+    submitText: 'Create Product'
   }
 
   return (

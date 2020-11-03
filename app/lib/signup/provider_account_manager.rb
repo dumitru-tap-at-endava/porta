@@ -19,7 +19,7 @@ module Signup
 
     def persist!(result, plans, defaults)
       account = result.account
-      account.signup_mode! # don't create service or app by callback; validate subdomain instead of domain
+      account.signup_mode! # don't create product or app by callback; validate subdomain instead of domain
       ::Signup::ImpersonationAdminBuilder.build(account: account)
       result.save!
       update_tenant_ids(account)

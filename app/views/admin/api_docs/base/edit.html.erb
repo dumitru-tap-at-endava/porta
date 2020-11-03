@@ -1,5 +1,8 @@
 <% content_for :sublayout_title, 'ActiveDocs' %>
-<h2>ActiveDocs: Edit Service Spec</h2>
+<h2>ActiveDocs: Edit Product Spec</h2>
 <%= semantic_form_for @api_docs_service, url: update_api_docs_service_path(@api_docs_service), html: {id: 'new-api-docs'} do |form| %>
   <%= render partial: 'form', locals: {form: form} %>
+  <%= form.buttons do %>
+    <%= form.commit_button 'Update Product' %>
+  <% end %>
 <% end %>

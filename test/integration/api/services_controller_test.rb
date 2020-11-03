@@ -27,8 +27,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
     test 'settings with finance allowed' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      Account.any_instance.stubs(:provider_can_use?).with(:api_as_product).returns(false | true)
-      rolling_update(:api_as_product, enabled: false)
 
       provider.settings.finance.allow
 
@@ -61,7 +59,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
     test 'settings renders the right template and contains the right sections' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: false)
 
       get settings_admin_service_path(service)
       assert_response :success
@@ -76,7 +73,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
     test 'update the settings' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: false)
       service.update!(deployment_option: 'self_managed')
       service.proxy.oidc_configuration.save!
       previous_oidc_config_id = service.proxy.reload.oidc_configuration.id
@@ -125,7 +121,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
     test 'update endpoint and sandbox endpoint with apicast custom url enabled' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: false)
 
       ThreeScale.config.stubs(:apicast_custom_url).returns(true)
 
@@ -142,7 +137,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
     test 'update endpoint and sandbox endpoint with apicast custom url disabled' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: false)
 
       ThreeScale.config.stubs(:apicast_custom_url).returns(false)
 
@@ -165,21 +159,19 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       assert_equal 'http://api.staging.example.com:8080', proxy.sandbox_endpoint
     end
 
-    test 'update settings with apiap' do
+    test 'update settings' do
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: true)
 
       put admin_service_path(service), params: update_params
       assert_equal 'Product information updated.', flash[:notice]
     end
 
-    test 'update api_backend with apiap' do
+    test 'update api_backend' do
       proxy = service.proxy
       proxy.api_backend = 'http://old.backend'
       proxy.save!
 
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: true)
 
       put admin_service_path(service), params: update_params.deep_merge(service: { proxy_attributes: { api_backend: 'https://new.backend' } })
       assert_equal 'http://old.backend:80', proxy.reload.api_backend
@@ -191,7 +183,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       proxy.save!
 
       Account.any_instance.stubs(:provider_can_use?).returns(true)
-      rolling_update(:api_as_product, enabled: false)
 
       put admin_service_path(service), params: update_params.deep_merge(service: { proxy_attributes: { api_backend: 'https://new.backend' } })
       assert_equal 'Service information updated.', flash[:notice]
@@ -240,9 +231,7 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       @provider.settings.allow_multiple_services!
     end
 
-    test 'should not create the default Backend if API as Product is enabled' do
-      Account.any_instance.stubs(:provider_can_use?).with(:api_as_product).returns(true).at_least_once
-
+    test 'should not create the default Backend' do
       assert_no_change of: -> { BackendApi.count } do
         params = {
           service: {
@@ -255,23 +244,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_equal 0, Service.last.backend_api_configs.count
-    end
-
-    test 'should create the default Backend if API as Product is disabled' do
-      Account.any_instance.stubs(:provider_can_use?).with(:api_as_product).returns(false).at_least_once
-
-      assert_change of: -> { BackendApi.count }, by: 1 do
-        params = {
-          service: {
-            system_name: 'my_new_product',
-            name: 'My new Product',
-            description: 'This will act as product'
-          }
-        }
-        post admin_services_path, params: params
-      end
-
-      assert_equal 1, Service.last.backend_api_configs.count
     end
   end
 

@@ -189,34 +189,6 @@ module Apicast
       end
     end
 
-    class ApiapEnabledOrDisabled < self
-      include ConfigBasedCommandTestHelpers
-
-      def setup
-        super
-        create_proxy_config
-      end
-
-      test 'api as product enabled' do
-        CurlCommandBuilder::StagingBuilder.expects(:new).with(instance_of(CurlCommandBuilder::ProxyFromConfig), {})
-        CurlCommandBuilder.new(proxy)
-      end
-
-      test 'api as product disabled' do
-        disable_apiap!
-        CurlCommandBuilder::StagingBuilder.expects(:new).with(proxy, { test_path: '/test' })
-        CurlCommandBuilder.new(proxy)
-      end
-
-      protected
-
-      def disable_apiap!
-        account = proxy.service.account
-        account.stubs(:provider_can_use?).returns(true)
-        account.expects(:provider_can_use?).with(:api_as_product).returns(false).at_least_once
-      end
-    end
-
     class StagingOrProductionEnvironment < self
       test 'staging environment' do
         proxy.update_column(:sandbox_endpoint, 'http://public-staging.fake')

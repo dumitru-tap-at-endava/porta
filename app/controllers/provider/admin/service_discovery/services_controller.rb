@@ -13,7 +13,7 @@ class Provider::Admin::ServiceDiscovery::ServicesController < Provider::Admin::B
       flash[:notice] = 'The service will be imported shortly. You will receive a notification when it is done.'
       redirect_to provider_admin_dashboard_path
     else
-      flash[:error] = 'Cannot create service.'
+      flash[:error] = 'Cannot create product.'
       redirect_to admin_new_service_path
     end
   end
@@ -22,7 +22,7 @@ class Provider::Admin::ServiceDiscovery::ServicesController < Provider::Admin::B
     if @service.discovered? && ::ServiceDiscovery::ImportClusterDefinitionsService.refresh_service(@service, user: current_user)
       flash[:notice] =  'Service information will be updated shortly.'
     else
-      flash[:error] =  'Cannot update service.'
+      flash[:error] =  'Cannot update product.'
     end
 
     redirect_back_or_to admin_service_metrics_path(@service)

@@ -27,7 +27,6 @@ Feature: API Service Plans
 
   Scenario: In allowed state, but with Service Plans hidden I should be able to see default plan in service settings
     Given provider "foo.3scale.localhost" has "service_plans" switch allowed
-    And I have rolling updates "api_as_product" disabled
     And provider has service plans hidden from the ui
     When I go to the settings page for service "API" of provider "foo.3scale.localhost"
     Then I should see "Default Service Plan"

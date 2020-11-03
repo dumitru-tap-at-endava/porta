@@ -42,11 +42,10 @@ class Api::ServicesController < Api::BaseController
 
   def settings
     activate_menu :serviceadmin, :integration, :settings
-    render settings_page
+    render :settings
   end
 
   def usage_rules
-    raise ActiveRecord::RecordNotFound unless apiap?
     activate_menu :serviceadmin, :applications, :usage_rules
   end
 
@@ -55,10 +54,10 @@ class Api::ServicesController < Api::BaseController
     creator = ServiceCreator.new(service: @service)
 
     if can_create? && creator.call(create_params)
-      flash[:notice] = t('flash.services.create.notice', resource_type: product_or_service_type)
+      flash[:notice] = t('flash.services.create.notice', resource_type: 'Product')
       redirect_to admin_service_path(@service)
     else
-      flash.now[:error] = @service.errors.full_messages.to_sentence.presence || I18n.t!('flash.services.create.errors.default', {resource_type: product_or_service_type})
+      flash.now[:error] = @service.errors.full_messages.to_sentence.presence || I18n.t!('flash.services.create.errors.default', {resource_type: 'Product'})
       activate_menu :dashboard
       render :new
     end
@@ -66,17 +65,17 @@ class Api::ServicesController < Api::BaseController
 
   def update
     if integration_settings_updater_service.call(service_attributes: service_params, proxy_attributes: proxy_params)
-      flash[:notice] =  t('flash.services.update.notice', resource_type: product_or_service_type)
+      flash[:notice] =  t('flash.services.update.notice', resource_type: 'Product')
       redirect_back_or_to :action => :settings
     else
-      flash.now[:error] = t('flash.services.update.error', resource_type: product_or_service_type)
-      render action: params[:update_settings].present? ? settings_page : :edit # edit page is only page with free form fields. other forms are less probable to have errors
+      flash.now[:error] = t('flash.services.update.error', resource_type: 'Product')
+      render action: params[:update_settings].present? ? :settings : :edit # edit page is only page with free form fields. other forms are less probable to have errors
     end
   end
 
   def destroy
     @service.mark_as_deleted!
-    flash[:notice] = t('flash.services.destroy.notice', resource_type: product_or_service_type, resource_name: @service.name)
+    flash[:notice] = t('flash.services.destroy.notice', resource_type: 'Product', resource_name: @service.name)
     redirect_to provider_admin_dashboard_path
   end
 
@@ -117,22 +116,12 @@ class Api::ServicesController < Api::BaseController
       error_status_no_match error_headers_no_match error_no_match
       error_status_limits_exceeded error_headers_limits_exceeded error_limits_exceeded
     ]
-    permitted_params << :api_backend unless apiap?
     permitted_params += %i[endpoint sandbox_endpoint] if can_edit_endpoints?
     params.require(:service).fetch(:proxy_attributes, {}).permit(permitted_params)
   end
 
   def can_edit_endpoints?
     Rails.application.config.three_scale.apicast_custom_url || service.proxy.saas_configuration_driven_apicast_self_managed?
-  end
-
-  # This will be the default 'settings' when apiap is live
-  def settings_page
-    apiap? ? :settings_apiap : :settings
-  end
-
-  def product_or_service_type
-    apiap? ? 'Product' : 'Service'
   end
 
   def collection

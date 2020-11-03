@@ -46,7 +46,7 @@ Feature: ActiveDocs
     Then I should see "ActiveDocs"
     When I follow "Edit" within the row for echo active docs
     Then I should see "Edit Service Spec"
-    And I press "Update Service"
+    And I press "Update Product"
     Then I should see "ActiveDocs Spec was successfully updated."
 
   Scenario: CRUD -- Create / Publish / Hide / Delete
