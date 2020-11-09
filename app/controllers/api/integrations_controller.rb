@@ -15,6 +15,8 @@ class Api::IntegrationsController < Api::BaseController
 
   rescue_from ActiveRecord::StaleObjectError, with: :edit_stale
 
+  attr_reader :service, :proxy
+
   def edit
     @latest_lua = current_account.proxy_logs.first
     @deploying =  ThreeScale::TimedValue.get(deploying_hosted_proxy_key)
@@ -24,16 +26,16 @@ class Api::IntegrationsController < Api::BaseController
   def settings; end
 
   def update
-    @show_presenter = Api::IntegrationsShowPresenter.new(@proxy)
+    @show_presenter = Api::IntegrationsShowPresenter.new(proxy)
 
-    if @service.using_proxy_pro? && !@proxy.apicast_configuration_driven
+    if service.using_proxy_pro? && !proxy.apicast_configuration_driven
       proxy_pro_update
-    elsif @proxy.save_and_deploy(proxy_params)
-      environment = @proxy.service_mesh_integration? ? 'Production' : 'Staging'
+    elsif proxy.save_and_deploy(proxy_params)
+      environment = proxy.service_mesh_integration? ? 'Production' : 'Staging'
       flash[:notice] = flash_message(:update_success, environment: environment)
       update_mapping_rules_position
 
-      redirect_to admin_service_integration_path(@service)
+      redirect_to admin_service_integration_path(service)
     else
       attrs = proxy_rules_attributes
       splitted = attrs.keys.group_by { |key| attrs[key]['_destroy'] == '1' }
@@ -49,18 +51,18 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def update_production
-    ProxyDeploymentService.call(@proxy, environment: :production)
+    ProxyDeploymentService.call(proxy, environment: :production)
     ThreeScale::TimedValue.set(deploying_hosted_proxy_key, true, 5*60 )
     ThreeScale::Analytics.track(current_user, 'Hosted Proxy deployed')
     flash[:notice] = flash_message(:update_production_success)
 
-    done_step(:apicast_gateway_deployed, final_step=true) if ApiClassificationService.test(@proxy.api_backend).real_api?
+    done_step(:apicast_gateway_deployed, final_step=true) if ApiClassificationService.test(proxy.api_backend).real_api?
 
     redirect_to action: :edit, anchor: 'proxy'
   end
 
   def update_onpremises_production
-    if @proxy.update_attributes(proxy_params)
+    if proxy.update_attributes(proxy_params)
       flash[:notice] = flash_message(:update_onpremises_production_success)
       redirect_to action: :edit, anchor: 'production'
     else
@@ -69,7 +71,7 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def promote_to_production
-    if ProxyDeploymentService.call(@proxy, environment: :production)
+    if ProxyDeploymentService.call(proxy, environment: :production)
       flash[:notice] = flash_message(:promote_to_production_success)
     else
       flash[:error] = flash_message(:promote_to_production_error)
@@ -80,7 +82,7 @@ class Api::IntegrationsController < Api::BaseController
   def show
     respond_to do |format|
       format.html do
-        @show_presenter = Api::IntegrationsShowPresenter.new(@proxy)
+        @show_presenter = Api::IntegrationsShowPresenter.new(proxy)
       end
 
       format.zip do
@@ -88,7 +90,7 @@ class Api::IntegrationsController < Api::BaseController
         source = if provider_can_use?(:apicast_per_service)
                    Apicast::UserSource.new(current_user)
                  else
-                   Apicast::ProviderSource.new(@service.account)
+                   Apicast::ProviderSource.new(service.account)
         end
 
         generator = Apicast::ZipGenerator.new(source)
@@ -102,17 +104,17 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def toggle_apicast_version
-    apicast_configuration_driven = @proxy.apicast_configuration_driven
+    apicast_configuration_driven = proxy.apicast_configuration_driven
 
-    if @proxy.oidc? && apicast_configuration_driven
+    if proxy.oidc? && apicast_configuration_driven
       flash[:error] = flash_message(:oidc_not_available_on_old_apicast)
-    elsif @proxy.toggle!(:apicast_configuration_driven)
+    elsif proxy.toggle!(:apicast_configuration_driven)
       apicast_configuration_driven_after_toggle = !apicast_configuration_driven
 
       analytics.track('APIcast Changed Version',
                       latest: apicast_configuration_driven_after_toggle,
-                      service_id: @proxy.service_id,
-                      deployment_option: @proxy.deployment_option
+                      service_id: proxy.service_id,
+                      deployment_option: proxy.deployment_option
                      )
       flash[:success] = apicast_configuration_driven_after_toggle ? flash_message(:apicast_version_upgraded) : flash_message(:apicast_version_reverted)
     else
@@ -125,7 +127,7 @@ class Api::IntegrationsController < Api::BaseController
   protected
 
   def find_registry_policies
-    policies_list = Policies::PoliciesListService.call!(current_account, proxy: @proxy)
+    policies_list = Policies::PoliciesListService.call!(current_account, proxy: proxy)
     @registry_policies = PoliciesListPresenter.new(policies_list).registry
   rescue StandardError => error
     @error = error
@@ -134,8 +136,8 @@ class Api::IntegrationsController < Api::BaseController
   def edit_stale
     flash.now[:error] = flash_message(:stale_object)
 
-    @proxy.reload
-    @proxy.assign_attributes(proxy_params.except(:lock_version))
+    proxy.reload
+    proxy.assign_attributes(proxy_params.except(:lock_version))
 
     @last_message_bus_id = nil # don't want MessageBus showing flash message
 
@@ -147,7 +149,7 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def proxy_pro_update
-    if @proxy.update_attributes(proxy_params)
+    if proxy.update_attributes(proxy_params)
       update_mapping_rules_position
       flash[:notice] = flash_message(:proxy_pro_update_sucess)
       redirect_to :show
@@ -157,7 +159,7 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def async_update
-    if (@deploy_id = @proxy.save_and_async_deploy(proxy_params, current_user))
+    if (@deploy_id = proxy.save_and_async_deploy(proxy_params, current_user))
       flash.now[:notice] = flash_message(:async_update_success)
     else
       attrs = params.fetch(:proxy, {}).fetch(:proxy_rules_attributes,{})
@@ -184,9 +186,9 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def find_proxy
-    @proxy = @service.proxy
+    proxy = service.proxy
 
-    @last_message_bus_id = params.fetch(:last_id) { last_message_bus_id(@proxy) } if message_bus?(@proxy)
+    @last_message_bus_id = params.fetch(:last_id) { last_message_bus_id(proxy) } if message_bus?(proxy)
   end
 
   def last_message_bus_id(proxy)
@@ -203,12 +205,12 @@ class Api::IntegrationsController < Api::BaseController
 
   def authorize
     authorize! :manage, :plans
-    authorize! :edit, @service
+    authorize! :edit, service
   end
 
   def update_mapping_rules_position
     proxy_rules_attributes.each_value do |attrs|
-      proxy_rule = @proxy.proxy_rules.find_by(id: attrs['id']) || next
+      proxy_rule = proxy.proxy_rules.find_by(id: attrs['id']) || next
       proxy_rule.set_list_position(attrs['position'])
     end
   end
@@ -247,12 +249,12 @@ class Api::IntegrationsController < Api::BaseController
       oidc_configuration_attributes: OIDCConfiguration::Config::ATTRIBUTES + [:id]
     ]
 
-    if Rails.application.config.three_scale.apicast_custom_url || @proxy.saas_configuration_driven_apicast_self_managed?
+    if Rails.application.config.three_scale.apicast_custom_url || proxy.saas_configuration_driven_apicast_self_managed?
       basic_fields << :endpoint
       basic_fields << :sandbox_endpoint
     end
 
-    basic_fields << :endpoint if @service.using_proxy_pro? || @proxy.saas_script_driven_apicast_self_managed?
+    basic_fields << :endpoint if service.using_proxy_pro? || proxy.saas_script_driven_apicast_self_managed?
 
     if provider_can_use?(:apicast_oidc)
       basic_fields << :oidc_issuer_endpoint
@@ -269,6 +271,6 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def toggle_land_path
-    @proxy.apicast_configuration_driven ? admin_service_integration_path(@service) : edit_admin_service_integration_path(@service)
+    proxy.apicast_configuration_driven ? admin_service_integration_path(service) : edit_admin_service_integration_path(service)
   end
 end
