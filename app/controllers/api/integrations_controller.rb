@@ -186,7 +186,8 @@ class Api::IntegrationsController < Api::BaseController
   end
 
   def find_proxy
-    proxy = service.proxy
+    binding.pry
+    @proxy = service.proxy
 
     @last_message_bus_id = params.fetch(:last_id) { last_message_bus_id(proxy) } if message_bus?(proxy)
   end
@@ -249,6 +250,7 @@ class Api::IntegrationsController < Api::BaseController
       oidc_configuration_attributes: OIDCConfiguration::Config::ATTRIBUTES + [:id]
     ]
 
+    binding.pry
     if Rails.application.config.three_scale.apicast_custom_url || proxy.saas_configuration_driven_apicast_self_managed?
       basic_fields << :endpoint
       basic_fields << :sandbox_endpoint

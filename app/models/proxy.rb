@@ -165,7 +165,6 @@ class Proxy < ApplicationRecord
     !hosted? && !self_managed?
   end
 
-
   def oidc_configuration
     super || build_oidc_configuration(standard_flow_enabled: true)
   end
@@ -196,10 +195,6 @@ class Proxy < ApplicationRecord
     def default_staging_endpoint; end
 
     def default_production_endpoint; end
-
-    def hosted_default_staging_endpoint; end
-
-    def hosted_default_production_endpoint; end
 
     protected
 
@@ -239,14 +234,6 @@ class Proxy < ApplicationRecord
     def default_production_endpoint
       production_endpoint = proxy.apicast_configuration_driven ? :apicast_production_endpoint : :hosted_proxy_endpoint
       generate(production_endpoint)
-    end
-
-    def hosted_default_staging_endpoint
-      default_staging_endpoint
-    end
-
-    def hosted_default_production_endpoint
-      default_production_endpoint
     end
   end
 
@@ -476,15 +463,9 @@ class Proxy < ApplicationRecord
   delegate :default_production_endpoint, :default_staging_endpoint,
            to: :deployment_strategy, allow_nil: true
 
-  delegate :hosted_default_production_endpoint, :hosted_default_staging_endpoint,
-           to: :hosted_service_deployment_strategy, allow_nil: true
-
   delegate :backend_version, to: :service, prefix: true
 
-
-
   delegate :provider_key, to: :provider
-
 
   def sandbox_host
     URI(sandbox_endpoint || set_sandbox_endpoint).host
