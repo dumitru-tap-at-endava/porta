@@ -25,17 +25,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
     end
 
-    test 'settings with finance allowed' do
-      Account.any_instance.stubs(:provider_can_use?).returns(true)
-
-      provider.settings.finance.allow
-
-      get settings_admin_service_path(service)
-
-      assert_select "input[name='service[buyer_plan_change_permission]'][value=credit_card]"
-      assert_select "input[name='service[buyer_plan_change_permission]'][value=request_credit_card]"
-    end
-
     test 'settings with finance denied' do
       provider.settings.finance.deny
 
@@ -71,44 +60,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    test 'update the settings' do
-      Account.any_instance.stubs(:provider_can_use?).returns(true)
-      service.update!(deployment_option: 'self_managed')
-      service.proxy.oidc_configuration.save!
-      previous_oidc_config_id = service.proxy.reload.oidc_configuration.id
-
-      put admin_service_path(service), params: update_params(oidc_id: previous_oidc_config_id)
-
-      assert_equal 'Service information updated.', flash[:notice]
-
-      update_service_params = update_params[:service]
-      update_proxy_params = update_service_params.delete(:proxy_attributes)
-      oidc_configuration_params = update_proxy_params.delete(:oidc_configuration_attributes)
-      expected_notification_settings = update_service_params[:notification_settings].transform_values { |notifications| notifications.map(&:to_i) }
-      expected_buyer_plan_change_permission = update_service_params[:buyer_plan_change_permission]
-      expected_signup_and_use = update_service_params
-                                  .slice(:intentions_required, :buyers_manage_apps, :referrer_filters_required, :custom_keys_enabled, :buyer_can_select_plan)
-                                  .transform_values { |value| (value.to_i == 1) }
-
-      service.reload
-
-      assert_equal expected_notification_settings, service.notification_settings
-      assert_equal expected_buyer_plan_change_permission, service.buyer_plan_change_permission
-      expected_signup_and_use.each { |attr_name, attr_value| assert_equal attr_value, service.public_send(attr_name) }
-
-      proxy = service.proxy
-      update_proxy_params.each do |field_name, expected_value|
-        assert_equal expected_value, proxy.public_send(field_name)
-      end
-
-      oidc_configuration = proxy.oidc_configuration
-      oidc_configuration_params.except(:id).each do |field_name, param_value|
-        expected_value = param_value == '1'
-        assert_equal expected_value, oidc_configuration.public_send(field_name)
-      end
-      assert_equal previous_oidc_config_id, proxy.reload.oidc_configuration.id
-    end
-
     test 'cannot update OIDC of another proxy' do
       service.proxy.oidc_configuration.save!
       another_oidc_config = FactoryBot.create(:oidc_configuration)
@@ -130,7 +81,7 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
       put admin_service_path(service), params: update_params
       proxy.reload
-      assert_equal 'Service information updated.', flash[:notice]
+      assert_equal 'Product information updated.', flash[:notice]
       assert_equal 'http://api.example.com:8080', proxy.endpoint
       assert_equal 'http://api.staging.example.com:8080', proxy.sandbox_endpoint
     end
@@ -154,7 +105,7 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
       service.update!(deployment_option: 'self_managed')
       put admin_service_path(service), params: update_params
       proxy.reload
-      assert_equal 'Service information updated.', flash[:notice]
+      assert_equal 'Product information updated.', flash[:notice]
       assert_equal 'http://api.example.com:8080', proxy.endpoint
       assert_equal 'http://api.staging.example.com:8080', proxy.sandbox_endpoint
     end
@@ -175,18 +126,6 @@ class Api::ServicesControllerTest < ActionDispatch::IntegrationTest
 
       put admin_service_path(service), params: update_params.deep_merge(service: { proxy_attributes: { api_backend: 'https://new.backend' } })
       assert_equal 'http://old.backend:80', proxy.reload.api_backend
-    end
-
-    test 'update api_backend without' do
-      proxy = service.proxy
-      proxy.api_backend = 'http://old.backend'
-      proxy.save!
-
-      Account.any_instance.stubs(:provider_can_use?).returns(true)
-
-      put admin_service_path(service), params: update_params.deep_merge(service: { proxy_attributes: { api_backend: 'https://new.backend' } })
-      assert_equal 'Service information updated.', flash[:notice]
-      assert_equal 'https://new.backend:443', proxy.reload.api_backend
     end
 
     private

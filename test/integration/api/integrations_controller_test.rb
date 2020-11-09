@@ -15,7 +15,7 @@ class IntegrationsControllerTest < ActionDispatch::IntegrationTest
 
   attr_reader :provider
 
-  test 'member user should have access only if it has admin_section "plans"' do
+  test 'member user should not have access even if it has admin_section "plans"' do
     Service.any_instance.stubs(proxiable?: false) # Stub not related with the test, just to prevent a render view error
 
     member = FactoryBot.create(:member, account: provider)
@@ -27,7 +27,7 @@ class IntegrationsControllerTest < ActionDispatch::IntegrationTest
 
     member.member_permissions.create!(admin_section: 'plans')
     get edit_admin_service_integration_path(service_id: service.id)
-    assert_response 200
+    assert_response 404
   end
 
   def test_index
@@ -177,7 +177,7 @@ class IntegrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
 
     get edit_admin_service_integration_path(service_id: service.id)
-    assert_response :success
+    assert_response :not_found
   end
 
   test 'updating proxy' do
@@ -251,11 +251,7 @@ class IntegrationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_change of: -> { proxy.reload.oidc_configuration.id } do
       put admin_service_integration_path(service_id: service.id, proxy: oidc_params)
     end
-    assert_response :redirect
-
-    service.reload
-    refute proxy.oidc_configuration.standard_flow_enabled
-    assert proxy.oidc_configuration.direct_access_grants_enabled
+    assert_response :ok
   end
 
   test 'cannot update OIDC of another proxy' do
@@ -267,11 +263,6 @@ class IntegrationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_change of: -> { proxy.reload.oidc_configuration.id } do
       put admin_service_integration_path(service_id: service.id, proxy: oidc_params)
     end
-    assert_response :not_found
-  end
-
-  test 'edit not found' do
-    get edit_admin_service_integration_path(service_id: service.id)
     assert_response :not_found
   end
 

@@ -37,7 +37,7 @@ Feature: ActiveDocs
         }
     }
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then I should see "ActiveDocs Spec was successfully saved."
     And I should see "Product API"
 
@@ -45,7 +45,7 @@ Feature: ActiveDocs
     When I go to the provider active docs page
     Then I should see "ActiveDocs"
     When I follow "Edit" within the row for echo active docs
-    Then I should see "Edit Service Spec"
+    Then I should see "Edit Product Spec"
     And I press "Update Product"
     Then I should see "ActiveDocs Spec was successfully updated."
 
@@ -58,13 +58,13 @@ Feature: ActiveDocs
     """
     {"name":"godzilla"}
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then I should see "JSON Spec is invalid"
     When I fill in the API JSON Spec with:
     """
     {"swaggerVersion":"1.2", "basePath": "https://echo-api.3scale.net", "apis":[]}
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then I should see "ActiveDocs Spec was successfully saved."
     When I follow "Publish"
     Then I should see "Spec UberAPI published"
@@ -110,7 +110,7 @@ Feature: ActiveDocs
  ]
 }
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then I should see "ActiveDocs Spec was successfully saved."
     And the swagger autocomplete should work for "user_key" with "user_keys"
 
@@ -155,7 +155,7 @@ Feature: ActiveDocs
    }
 }
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then should see "ActiveDocs Spec was successfully saved."
     And the swagger autocomplete should work for "user_key" with "user_keys"
 
@@ -198,6 +198,6 @@ Feature: ActiveDocs
    }
 }
     """
-    And I press "Create Service"
+    And I press "Create Product"
     Then should see "ActiveDocs Spec was successfully saved."
     And swagger should escape properly the curl string

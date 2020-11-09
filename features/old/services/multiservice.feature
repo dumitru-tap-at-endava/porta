@@ -69,5 +69,5 @@ Feature: Multiservice feature
     Given I am logged in as provider "foo.3scale.localhost"
     And provider "foo.3scale.localhost" has "multiple_services" switch allowed
     And I am on the edit page for service "Second service" of provider "foo.3scale.localhost"
-    When I follow "I understand the consequences, proceed to delete 'Second service' service" and I confirm dialog box
+    When I follow "I understand the consequences, proceed to delete product 'Second service'" and I confirm dialog box
     Then I should see "Product 'Second service' will be deleted shortly."

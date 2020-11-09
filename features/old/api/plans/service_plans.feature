@@ -28,10 +28,10 @@ Feature: API Service Plans
   Scenario: In allowed state, but with Service Plans hidden I should be able to see default plan in service settings
     Given provider "foo.3scale.localhost" has "service_plans" switch allowed
     And provider has service plans hidden from the ui
-    When I go to the settings page for service "API" of provider "foo.3scale.localhost"
+    When I go to the usage rules settings for service "API"
     Then I should see "Default Service Plan"
 
-  Scenario: In allowed state, but with Service Plans visible I should be able to set default plan in service settings
+  Scenario: In allowed state, but with Service Plans visible I should not be able to set default plan in service settings
     Given provider "foo.3scale.localhost" has "service_plans" switch allowed
-    When I go to the settings page for service "API" of provider "foo.3scale.localhost"
+    When I go to the usage rules settings for service "API"
     Then I should not see "Default Service Plan"

@@ -15,7 +15,7 @@ module ServiceDiscovery
                                                 kubernetes_service_link: '/api/v1/namespaces/fake-project/services/fake-api')
       end
 
-      test 'create service async' do
+      test 'create product async' do
         CreateServiceWorker.expects(:perform_async).with(@account.id, 'fake-project', 'fake-api', nil)
         new_service = ImportClusterDefinitionsService.create_service(@account, cluster_namespace: 'fake-project',
                                                                                cluster_service_name: 'fake-api')
@@ -44,7 +44,7 @@ module ServiceDiscovery
       @import_service = ImportClusterDefinitionsService.new
     end
 
-    test 'create service' do
+    test 'create product' do
       cluster_service = ServiceDiscovery::ClusterService.new raw_cluster_service_resource(name: 'new-fake-api')
       cluster_service.stubs(specification: mock_cluster_service_spec)
       @import_service.cluster.stubs(:find_discoverable_service_by).returns(cluster_service)
