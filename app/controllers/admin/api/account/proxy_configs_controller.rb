@@ -35,15 +35,13 @@ class Admin::Api::Account::ProxyConfigsController < Admin::Api::BaseController
   private
 
   def proxy_configs
-    @proxy_configs ||= ProxyConfig.joins(:proxy)
-      .where(proxies: { service_id: accessible_services.pluck(:id) })
-      .by_environment(environment)
-      .by_host(host)
-      .by_version(version)
+    @proxy_configs ||= FetchProxyConfigsService
+                         .new(owner: current_account, watcher: watcher)
+                         .call(environment: environment, host: host, version: version)
   end
 
-  def accessible_services
-    (current_user || current_account).accessible_services
+  def watcher
+    (current_user || current_account)
   end
 
   def environment

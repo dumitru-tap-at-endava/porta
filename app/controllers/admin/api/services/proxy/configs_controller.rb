@@ -106,12 +106,13 @@ class Admin::Api::Services::Proxy::ConfigsController < Admin::Api::Services::Bas
   end
 
   def service_proxy_configs
-    service.proxy.proxy_configs.by_environment(environment)
+    FetchProxyConfigsService.new(owner: service, watcher: current_account).call(environment: environment)
   end
 
   def host_proxy_configs
-    current_account.accessible_proxy_configs
-      .by_environment(environment).by_host(host).current_versions
+    FetchProxyConfigsService
+      .new(owner: current_account, watcher: current_account)
+      .call(environment: environment, host: host, version: 'latest')
   end
 
   def host
