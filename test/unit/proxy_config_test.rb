@@ -58,17 +58,6 @@ class ProxyConfigTest < ActiveSupport::TestCase
     assert_equal [], config.hosts
   end
 
-  def test_current_versions
-    proxy = FactoryBot.create(:proxy)
-    FactoryBot.create(:proxy_config, version: 1, proxy: proxy)
-    assert_equal [1], ProxyConfig.current_versions.pluck(:version)
-
-    FactoryBot.create(:proxy_config, version: 2, proxy: proxy)
-    assert_equal [2], ProxyConfig.current_versions.pluck(:version)
-
-    assert ProxyConfig.current_versions.to_a
-  end
-
   def test_filename
     proxy = FactoryBot.create(:proxy)
     proxy_config = FactoryBot.create(:proxy_config, version: 1, proxy: proxy)

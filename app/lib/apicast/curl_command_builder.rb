@@ -134,9 +134,8 @@ module Apicast
     end
 
     def proxy_from_config
-      proxy_configs = proxy.proxy_configs.by_environment(environment.to_s).current_versions.to_a
-      return if proxy_configs.empty?
-      ProxyFromConfig.new(proxy_configs.first.send(:parsed_content))
+      proxy_configs = FetchProxyConfigsService.call(environment: environment.to_s, version: :latest.to_s).to_a
+      ProxyFromConfig.new(proxy_configs.first.parsed_content) unless proxy_configs.empty?
     end
   end
 end

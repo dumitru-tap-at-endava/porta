@@ -36,8 +36,10 @@ class Admin::Api::Account::ProxyConfigsController < Admin::Api::BaseController
 
   def proxy_configs
     @proxy_configs ||= FetchProxyConfigsService
-                         .new(owner: current_account, watcher: watcher)
-                         .call(environment: environment, host: host, version: version)
+                         .call(scope: FetchProxyConfigsService::ProxyIdsForOwnerAndWatcher.scope(owner: current_account, watcher: watcher),
+                               environment: environment,
+                               host: host,
+                               version: version)
   end
 
   def watcher

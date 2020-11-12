@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Master::Api::Proxy::ConfigsController < Master::Api::BaseController
+  # TODO: paginate ?
+
   include Roar::Rails::ControllerAdditions
 
   include ApiAuthentication::ByAccessToken
@@ -19,7 +21,7 @@ class Master::Api::Proxy::ConfigsController < Master::Api::BaseController
   protected
 
   def service_proxy_configs
-    ProxyConfig.current_versions.by_environment(environment).by_host(host)
+    FetchProxyConfigsService.call(environment: environment, host: host, version: :latest.to_s)
   end
 
   def environment

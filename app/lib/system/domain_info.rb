@@ -17,10 +17,14 @@ module System
       end
 
       def apicast_info(domain)
-        environment = ProxyConfig.current_versions.by_host(domain).take(2).index_by(&:environment)
+        # environment = ProxyConfig.current_versions.by_host(domain).take(2).index_by(&:environment)
 
-        sandbox = environment['sandbox']&.sandbox_host == domain
-        production = environment['production']&.production_host == domain
+        # sandbox = environment['sandbox']&.sandbox_host == domain
+        # production = environment['production']&.production_host == domain
+
+        # FetchProxyConfigsService.call(environment: environment,
+        #     host: host,
+        #     version: version)
 
         APIcastInfo.new(sandbox, production).freeze
       end
